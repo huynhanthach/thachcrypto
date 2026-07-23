@@ -11,9 +11,9 @@ class OrderComponent extends Component {
       orders: [],
       itemSelected: null,
       loading: true,
-      hoveredRowId: null, // State nhận biết dòng đang hover
-      hoveredBtn: null,   // State nhận biết nút thao tác đang hover
-      statusFilter: "ALL", // State lưu trạng thái lọc hiện tại
+      hoveredRowId: null,
+      hoveredBtn: null,
+      statusFilter: "ALL",
     };
   }
 
@@ -27,8 +27,9 @@ class OrderComponent extends Component {
 
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
+    // ĐÃ SỬA: Thêm /admin/ vào đường dẫn API để lấy dữ liệu thành công
     axios
-      .get(`${CONFIG.BASE_URL}/api/orders`, config)
+      .get(`${CONFIG.BASE_URL}/api/admin/orders`, config)
       .then((res) => {
         let fetchedOrders = [];
         if (Array.isArray(res.data)) {
@@ -102,7 +103,7 @@ class OrderComponent extends Component {
   render() {
     const { orders, itemSelected, loading, hoveredRowId, hoveredBtn, statusFilter } = this.state;
 
-    // 1. Logic Lọc đơn hàng theo trạng thái
+    // Logic Lọc đơn hàng theo trạng thái
     const filteredOrders = statusFilter === "ALL"
       ? orders
       : orders.filter(order => {
@@ -112,7 +113,6 @@ class OrderComponent extends Component {
 
     const hasOrders = filteredOrders && filteredOrders.length > 0;
 
-    // Function tạo style linh hoạt cho nút thao tác + Hover effect
     const getBtnActionStyle = (btnKey, bgNormal, bgHover) => {
       const isHovered = hoveredBtn === btnKey;
       return {
@@ -140,8 +140,8 @@ class OrderComponent extends Component {
         const isHovered = hoveredRowId === item._id;
 
         let bgColor = "#ffffff";
-        if (isSelected) bgColor = "#fef3c7"; // Vàng nhạt nổi bật
-        else if (isHovered) bgColor = "#f8fafc"; // Xám nhẹ khi hover
+        if (isSelected) bgColor = "#fef3c7";
+        else if (isHovered) bgColor = "#f8fafc";
 
         return (
           <tr
@@ -159,18 +159,17 @@ class OrderComponent extends Component {
               height: "52px",
             }}
           >
-            <td style={{ padding: "12px 15px", fontWeight: "600", color: isSelected ? "#ae7e17" : "#64748b", fontSize: "0.85rem" }}>
+            <td style={{ padding: "12px 15px", fontWeight: "600", color: isSelected ? "#ae7e17" : "#64748b", fontSize: "0.85rem", textAlign: "center" }}>
               #{item._id.substring(item._id.length - 6).toUpperCase()}
             </td>
-            <td style={{ color: "#475569", fontSize: "0.85rem" }}>
+            <td style={{ color: "#475569", fontSize: "0.85rem", textAlign: "center" }}>
               {new Date(item.createdAt).toLocaleString("vi-VN")}
             </td>
-            <td style={{ fontWeight: isSelected ? "700" : "600", color: "#0f172a" }}>
+            <td style={{ fontWeight: isSelected ? "700" : "600", color: "#0f172a", textAlign: "center" }}>
               {item.user?.name || "Khách hàng"}
             </td>
 
-            {/* CỘT PHƯƠNG THỨC THANH TOÁN */}
-            <td>
+            <td style={{ textAlign: "center" }}>
               <span
                 style={{
                   padding: "4px 10px",
@@ -186,11 +185,11 @@ class OrderComponent extends Component {
               </span>
             </td>
 
-            <td style={{ fontWeight: "700", color: "#0f172a" }}>
+            <td style={{ fontWeight: "700", color: "#0f172a", textAlign: "center" }}>
               {item.totalPrice.toLocaleString("vi-VN")}đ
             </td>
 
-            <td>
+            <td style={{ textAlign: "center" }}>
               <span
                 style={{
                   padding: "5px 12px",
@@ -214,7 +213,6 @@ class OrderComponent extends Component {
       <div
         style={{ padding: "35px 30px", backgroundColor: "#f8fafc", minHeight: "100vh" }}
       >
-        {/* 2. Giao diện Tiêu đề & Bộ lọc trạng thái */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
           <h2
             style={{
@@ -256,7 +254,6 @@ class OrderComponent extends Component {
 
         <div style={{ display: "flex", gap: "25px", alignItems: "flex-start" }}>
 
-          {/* BẢNG DANH SÁCH ĐƠN HÀNG */}
           <div
             style={{
               flex: 1.5,
@@ -305,7 +302,6 @@ class OrderComponent extends Component {
             </div>
           </div>
 
-          {/* KHỐI XỬ LÝ ĐƠN HÀNG ĐƯỢC CHỌN */}
           {itemSelected && (
             <div
               style={{
@@ -335,7 +331,6 @@ class OrderComponent extends Component {
                 Mã đơn: <strong style={{ color: "#ae7e17" }}>#{itemSelected._id}</strong>
               </p>
 
-              {/* LƯU Ý PHƯƠNG THỨC THANH TOÁN */}
               <div
                 style={{
                   padding: "12px 15px",
@@ -359,7 +354,6 @@ class OrderComponent extends Component {
                 )}
               </div>
 
-              {/* NHÓM NÚT CHUYỂN TRẠNG THÁI */}
               <div
                 style={{
                   display: "flex",
@@ -427,7 +421,6 @@ class OrderComponent extends Component {
                 )}
               </div>
 
-              {/* CHI TIẾT SẢN PHẨM TRONG ĐƠN HÀNG */}
               <div style={{ marginTop: "20px" }}>
                 <OrderDetailComponent
                   order={itemSelected}

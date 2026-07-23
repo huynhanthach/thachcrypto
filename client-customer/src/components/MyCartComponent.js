@@ -35,7 +35,7 @@ class MyCartComponent extends Component {
     }
   };
 
-  // ✅ ĐẶT HÀM UPDATE Ở ĐÂY LÀ CHUẨN (Ngoài hàm render)
+  //  ĐẶT HÀM UPDATE 
   handleUpdateQuantity = (id, newQty) => {
     // Không cho phép giảm số lượng xuống dưới 1
     if (newQty < 1) return;
@@ -212,10 +212,7 @@ class MyCartComponent extends Component {
                 <span>Tạm tính:</span>
                 <span>{total.toLocaleString()}₫</span>
               </div>
-              <div className="summary-row">
-                <span>Giảm giá:</span>
-                <span>0₫</span>
-              </div>
+
               <div className="summary-row total-row">
                 <span>TỔNG CỘNG:</span>
                 <span className="final-total">{total.toLocaleString()}₫</span>

@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const Voucher = require("../models/Voucher");
 const sendOrderEmail = require("../utils/sendEmail");
 
 // 1. Tạo đơn hàng mới
@@ -13,6 +14,7 @@ const addOrderItems = async (req, res) => {
       paymentMethod,
       email,
       customerName,
+      voucherCode,
     } = req.body;
 
     if (orderItems && orderItems.length === 0) {
@@ -45,11 +47,26 @@ const addOrderItems = async (req, res) => {
       user: req.user._id,
       shippingAddress,
       paymentMethod: paymentMethod || "COD",
-      totalPrice: totalPrice || total || 0,
+      totalPrice: totalPrice || total || 0, // Tổng tiền này đã được Frontend trừ voucher rồi
       status: "PENDING",
     });
 
     const createdOrder = await order.save();
+
+    // 3. =============== THÊM ĐOẠN NÀY ĐỂ HỦY VOUCHER ===============
+    // Khi đơn hàng tạo thành công, nếu có dùng voucher thì đánh dấu là đã xài
+    if (voucherCode) {
+      const usedVoucher = await Voucher.findOne({
+        code: voucherCode,
+        user: req.user._id,
+        isUsed: false
+      });
+      if (usedVoucher) {
+        usedVoucher.isUsed = true; // Đánh dấu đã sử dụng
+        await usedVoucher.save();
+      }
+    }
+    // ============================================================
 
     // Gửi mail cho khách
     const recipientEmail = email || req.user?.email;
@@ -216,6 +233,7 @@ const getSalesAnalytics = async (req, res) => {
     });
   }
 };
+
 // EXPORT TOÀN BỘ CÁC HÀM
 module.exports = {
   addOrderItems,

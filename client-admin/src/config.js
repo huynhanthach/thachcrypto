@@ -1,3 +1,3 @@
 export const CONFIG = {
-    BASE_URL: "https://thachcrypto.onrender.com",
+    BASE_URL: "http://localhost:8000",
 };

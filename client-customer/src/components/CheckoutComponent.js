@@ -18,6 +18,10 @@ class CheckoutComponent extends Component {
       paymentMethod: "COD",
       isReady: false,
       createdOrder: null,
+
+      vouchers: [],
+      selectedVoucherCode: "",
+      discountAmount: 0
     };
   }
 
@@ -30,6 +34,8 @@ class CheckoutComponent extends Component {
           phone: user.phone || "",
           address: user.address || "",
           isReady: true,
+        }, () => {
+          this.apiGetMyVouchers();
         });
       } else {
         window.location.href = "/login";
@@ -37,11 +43,44 @@ class CheckoutComponent extends Component {
     }, 200);
   }
 
+  apiGetMyVouchers = () => {
+    const { token } = this.context;
+    if (!token) return;
+
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+
+    axios.get(`${CONFIG.BASE_URL}/api/orders/vouchers/mine`, config)
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          this.setState({ vouchers: res.data });
+        }
+      })
+      .catch(err => console.log("Lỗi tải voucher:", err.message));
+  }
+
+  // HÀM QUAN TRỌNG: Sửa lỗi không nhập được chữ
   handleInputChange = (e) => {
     this.setState({ [e.target.name]: e.target.value });
   };
 
-  // 🟢 HÀM HỖ TRỢ TÍNH GIÁ BÁN THỰC TẾ (ĐÃ TRỪ % GIẢM GIÁ)
+  handleVoucherChange = (e) => {
+    const code = e.target.value;
+    const { vouchers } = this.state;
+
+    if (!code) {
+      this.setState({ selectedVoucherCode: "", discountAmount: 0 });
+      return;
+    }
+
+    const selectedVoucher = vouchers.find(v => v.code === code);
+    if (selectedVoucher) {
+      this.setState({
+        selectedVoucherCode: code,
+        discountAmount: selectedVoucher.discountAmount
+      });
+    }
+  };
+
   getItemPrice = (prod) => {
     const discountPercent = prod.discountPercent || prod.discount || 0;
     if (discountPercent > 0) {
@@ -54,7 +93,7 @@ class CheckoutComponent extends Component {
   btnConfirmOrderClick = (e) => {
     e.preventDefault();
     const { mycart, token, user } = this.context;
-    const { name, address, phone, city, paymentMethod } = this.state;
+    const { name, address, phone, city, paymentMethod, selectedVoucherCode, discountAmount } = this.state;
 
     if (!address.trim() || !phone.trim() || !name.trim()) {
       Swal.fire(
@@ -65,23 +104,25 @@ class CheckoutComponent extends Component {
       return;
     }
 
-    // Tính tổng tiền chuẩn đã trừ sale
-    const calculatedTotal = mycart.reduce(
+    const rawTotal = mycart.reduce(
       (sum, item) => sum + this.getItemPrice(item.product) * item.quantity,
       0,
     );
+
+    const finalTotal = Math.max(0, rawTotal - discountAmount);
 
     const orderData = {
       orderItems: mycart.map((item) => ({
         name: item.product.name,
         qty: item.quantity,
         image: item.product.image,
-        price: this.getItemPrice(item.product), // Lấy giá sau khi giảm
+        price: this.getItemPrice(item.product),
         product: item.product._id,
       })),
       shippingAddress: { address, city, phone },
       paymentMethod: paymentMethod,
-      totalPrice: calculatedTotal, // Tổng tiền đã trừ giảm giá
+      totalPrice: finalTotal,
+      voucherCode: selectedVoucherCode,
       email: user.email,
       customerName: name,
     };
@@ -123,7 +164,7 @@ class CheckoutComponent extends Component {
 
   render() {
     const { mycart, token } = this.context;
-    const { isReady, createdOrder, paymentMethod } = this.state;
+    const { isReady, createdOrder, paymentMethod, vouchers, selectedVoucherCode, discountAmount } = this.state;
 
     if (!isReady) return <div className="p-loading">ĐANG TẢI...</div>;
 
@@ -135,11 +176,12 @@ class CheckoutComponent extends Component {
       );
     }
 
-    // Tính tổng tiền toàn đơn đã giảm giá
-    const total = mycart.reduce(
+    const subTotal = mycart.reduce(
       (sum, item) => sum + this.getItemPrice(item.product) * item.quantity,
       0,
     );
+
+    const finalTotal = Math.max(0, subTotal - discountAmount);
 
     return (
       <div className="checkout-page-wrapper">
@@ -154,7 +196,7 @@ class CheckoutComponent extends Component {
                   <input
                     type="text"
                     name="name"
-                    value={this.state.name}
+                    value={this.state.name || ""}
                     onChange={this.handleInputChange}
                     placeholder="Nhập họ và tên..."
                   />
@@ -164,7 +206,7 @@ class CheckoutComponent extends Component {
                   <input
                     type="text"
                     name="phone"
-                    value={this.state.phone}
+                    value={this.state.phone || ""}
                     onChange={this.handleInputChange}
                     placeholder="Nhập SĐT..."
                   />
@@ -173,7 +215,7 @@ class CheckoutComponent extends Component {
                   <label>Địa chỉ nhận hàng chi tiết</label>
                   <textarea
                     name="address"
-                    value={this.state.address}
+                    value={this.state.address || ""}
                     onChange={this.handleInputChange}
                     placeholder="Số nhà, tên đường..."
                     rows="3"
@@ -183,7 +225,7 @@ class CheckoutComponent extends Component {
                   <label>Tỉnh / Thành phố</label>
                   <select
                     name="city"
-                    value={this.state.city}
+                    value={this.state.city || "TP. Hồ Chí Minh"}
                     onChange={this.handleInputChange}
                     className="checkout-select-custom"
                   >
@@ -208,65 +250,29 @@ class CheckoutComponent extends Component {
                   border: "1px solid #ddd",
                 }}
               >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: "15px",
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={{ display: "flex", alignItems: "center", marginBottom: "15px", cursor: "pointer" }}>
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="COD"
                     checked={this.state.paymentMethod === "COD"}
                     onChange={this.handleInputChange}
-                    style={{
-                      width: "20px",
-                      height: "20px",
-                      marginRight: "10px",
-                    }}
+                    style={{ width: "20px", height: "20px", marginRight: "10px" }}
                   />
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      fontWeight:
-                        this.state.paymentMethod === "COD" ? "bold" : "normal",
-                    }}
-                  >
+                  <span style={{ fontSize: "16px", fontWeight: this.state.paymentMethod === "COD" ? "bold" : "normal" }}>
                     Thanh toán khi nhận hàng (COD)
                   </span>
                 </label>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="VietQR"
                     checked={this.state.paymentMethod === "VietQR"}
                     onChange={this.handleInputChange}
-                    style={{
-                      width: "20px",
-                      height: "20px",
-                      marginRight: "10px",
-                    }}
+                    style={{ width: "20px", height: "20px", marginRight: "10px" }}
                   />
-                  <span
-                    style={{
-                      fontSize: "16px",
-                      fontWeight:
-                        this.state.paymentMethod === "VietQR"
-                          ? "bold"
-                          : "normal",
-                      color: "#ae7e17",
-                    }}
-                  >
+                  <span style={{ fontSize: "16px", fontWeight: this.state.paymentMethod === "VietQR" ? "bold" : "normal", color: "#ae7e17" }}>
                     Chuyển khoản qua App Ngân Hàng (VietQR)
                   </span>
                 </label>
@@ -304,20 +310,50 @@ class CheckoutComponent extends Component {
                   );
                 })}
               </div>
+
+              {/* VÙNG CHỌN VOUCHER ĐÃ ĐƯỢC ẨN ĐI NẾU KHÔNG CÓ MÃ */}
+              {vouchers && vouchers.length > 0 && (
+                <div style={{ margin: "20px 0", padding: "15px", background: "#f0fdf4", border: "1px dashed #16a34a", borderRadius: "8px" }}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#16a34a" }}>
+                    🎁 Áp dụng Voucher (Bạn có {vouchers.length} mã)
+                  </label>
+                  <select
+                    value={selectedVoucherCode}
+                    onChange={this.handleVoucherChange}
+                    style={{ width: "100%", padding: "10px", borderRadius: "5px", border: "1px solid #bbf7d0", outline: "none", cursor: "pointer" }}
+                  >
+                    <option value="">-- Không sử dụng Voucher --</option>
+                    {vouchers.map(v => (
+                      <option key={v.code} value={v.code}>
+                        Giảm {v.discountAmount.toLocaleString("vi-VN")}đ (Mã: {v.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="final-bill-box">
                 <div className="bill-row">
                   <span>Tạm tính</span>
-                  <span>{total.toLocaleString("vi-VN")}₫</span>
+                  <span>{subTotal.toLocaleString("vi-VN")}₫</span>
                 </div>
                 <div className="bill-row">
                   <span>Vận chuyển</span>
                   <span className="free-ship">Miễn phí</span>
                 </div>
+
+                {discountAmount > 0 && (
+                  <div className="bill-row" style={{ color: "#16a34a", fontWeight: "bold" }}>
+                    <span>Voucher khuyến mãi</span>
+                    <span>- {discountAmount.toLocaleString("vi-VN")}₫</span>
+                  </div>
+                )}
+
                 <div className="bill-divider"></div>
                 <div className="bill-row total-grand">
                   <span>TỔNG CỘNG</span>
                   <span className="final-val" style={{ color: "#ed1c24", fontWeight: "800" }}>
-                    {total.toLocaleString("vi-VN")}₫
+                    {finalTotal.toLocaleString("vi-VN")}₫
                   </span>
                 </div>
                 <button

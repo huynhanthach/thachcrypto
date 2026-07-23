@@ -44,6 +44,9 @@ class MainComponent extends Component {
           }}
         >
           <Routes>
+            {/* DÒNG NÀY VÀO ĐỂ BẮT ĐƯỜNG DẪN GỐC */}
+            <Route path="/" element={<Navigate replace to="/admin/home" />} />
+
             <Route
               path="/admin"
               element={<Navigate replace to="/admin/home" />}

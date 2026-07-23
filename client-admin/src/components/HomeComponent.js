@@ -9,38 +9,52 @@ class HomeComponent extends Component {
       countCategories: 0,
       countProducts: 0,
       countOrders: 0,
-      hoveredBox: null, // Thêm state để nhận biết box đang được hover
+      hoveredBox: null,
     };
   }
 
   componentDidMount() {
+    // 1. Lấy dữ liệu ngay khi vừa load trang
     this.apiGetStatistics();
+
+    // 2. THÊM TÍNH NĂNG TỰ ĐỘNG LÀM MỚI (Mỗi 10 giây)
+    this.interval = setInterval(() => {
+      this.apiGetStatistics();
+    }, 10000);
+  }
+
+  // THÊM HÀM NÀY ĐỂ DỌN DẸP BỘ ĐẾM KHI CHUYỂN SANG TRANG KHÁC (Tránh lag máy)
+  componentWillUnmount() {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
   }
 
   apiGetStatistics() {
     const token = localStorage.getItem("token");
-
     if (!token) return;
-
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
+    // Lấy số lượng Danh mục
     axios
       .get(`${CONFIG.BASE_URL}/api/categories`, config)
       .then((res) => {
         this.setState({ countCategories: res.data.length });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => console.log("Lỗi lấy categories:", err.message));
 
+    // Lấy số lượng Sản phẩm
     axios
       .get(`${CONFIG.BASE_URL}/api/products`, config)
       .then((res) => {
         const productList = res.data?.products ? res.data.products : (Array.isArray(res.data) ? res.data : []);
         this.setState({ countProducts: productList.length });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => console.log("Lỗi lấy products:", err.message));
 
+    // ĐÃ SỬA: Gọi đúng API /api/admin/orders của Quản trị viên
     axios
-      .get(`${CONFIG.BASE_URL}/api/orders`, config)
+      .get(`${CONFIG.BASE_URL}/api/admin/orders`, config)
       .then((res) => {
         const orderList = Array.isArray(res.data) ? res.data : [];
         const pendingOrders = orderList.filter(
@@ -48,7 +62,7 @@ class HomeComponent extends Component {
         );
         this.setState({ countOrders: pendingOrders.length });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => console.log("Lỗi lấy orders:", err.message));
   }
 
   render() {

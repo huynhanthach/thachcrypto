@@ -3,14 +3,36 @@ const router = express.Router();
 const {
   addOrderItems,
   confirmBankTransfer,
-  getSalesAnalytics, // 1. THÊM IMPORT HÀM NÀY
+  getSalesAnalytics,
 } = require("../controllers/orderController");
 const { protect, admin } = require("../middleware/authMiddleware");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const sendOrderEmail = require("../utils/sendEmail");
+const Voucher = require("../models/Voucher");
 
-// 2. THÊM ROUTE THỐNG KÊ (Phải đặt TRÊN các route /:id)
+
+router.get("/vouchers/mine", protect, async (req, res) => {
+  try {
+    console.log("=== ĐANG TÌM VOUCHER CHO USER ID ===", req.user._id);
+
+    // Tìm voucher chưa sử dụng và còn hạn
+    const vouchers = await Voucher.find({
+      user: req.user._id,
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    console.log("=== SỐ VOUCHER TÌM THẤY TRONG DATABASE ===", vouchers.length);
+    res.json(vouchers);
+  } catch (error) {
+    console.error("Lỗi lấy voucher:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ================= CÁC ROUTE CÒN LẠI =================
+
 router.get("/analytics", getSalesAnalytics);
 
 router.post("/", protect, addOrderItems);
