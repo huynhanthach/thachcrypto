@@ -302,7 +302,7 @@ class HomeComponent extends Component {
                 margin: "0 auto 30px",
                 lineHeight: "1.6"
               }}>
-                Nền tảng cung cấp linh kiện máy tính, ví lạnh và các thiết bị phần cứng Crypto hàng đầu. Cam kết chính hãng 100%, bảo hành uy tín và hỗ trợ kỹ thuật trọn đời.
+                Nền tảng cung cấp linh kiện ví lạnh và các thiết bị phần cứng Crypto hàng đầu. Cam kết chính hãng 100%, bảo hành uy tín và hỗ trợ kỹ thuật trọn đời.
               </p>
               <button
                 onClick={() => window.scrollTo({ top: 800, behavior: "smooth" })}
