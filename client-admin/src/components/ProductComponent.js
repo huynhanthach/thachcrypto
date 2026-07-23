@@ -140,12 +140,21 @@ class ProductComponent extends Component {
           <input
             placeholder="Tìm tên sản phẩm..."
             value={this.state.txtKeyword}
-            onChange={(e) => this.setState({ txtKeyword: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Lưu chữ người dùng gõ, nếu xóa trắng thì tự động gọi API lấy tất cả
+              this.setState({ txtKeyword: value }, () => {
+                if (value === "") {
+                  this.apiGetProducts();
+                }
+              });
+            }}
             style={{ padding: "8px", flex: 1 }}
           />
           <select
             value={this.state.selBrand}
-            onChange={(e) => this.setState({ selBrand: e.target.value })}
+            // Tự động gọi API sau khi chọn Hãng
+            onChange={(e) => this.setState({ selBrand: e.target.value }, this.apiGetProducts)}
             style={{ padding: "8px" }}
           >
             <option value="all">Tất cả hãng</option>
@@ -153,7 +162,8 @@ class ProductComponent extends Component {
           </select>
           <select
             value={this.state.selCategory}
-            onChange={(e) => this.setState({ selCategory: e.target.value })}
+            // Tự động gọi API sau khi chọn Danh mục
+            onChange={(e) => this.setState({ selCategory: e.target.value }, this.apiGetProducts)}
             style={{ padding: "8px" }}
           >
             <option value="all">Tất cả danh mục</option>
